@@ -1,12 +1,9 @@
 /**
  * JS Lib for Animate.css (daneden.github.io/animate.css/)
- * v0.1
- * 
+ *
  * Created by thram on 31/03/15.
  */
 var Animations = (function () {
-    var duration = null;
-
     var AXES = {
         X: 'X',
         Y: 'Y'
@@ -128,6 +125,86 @@ var Animations = (function () {
         }
     }
 
+    function _oldBrowsersFallback(el, animation, transition, direction, isBig, callback) {
+        if (el.velocity) {
+            var params = {};
+            var unit = {x: $('body').width() / 2, y: $('body').height() / 2};
+            var options = {duration: this.duration, complete: callback};
+            switch (animation) {
+                case (ANIMATIONS.FADE):
+                    switch (transition) {
+                        case (TRANSITIONS.OUT):
+                            params['opacity'] = 0;
+                            options['display'] = 'none';
+                            break;
+                        case (TRANSITIONS.IN):
+                        default :
+                            el.css({opacity: 0});
+                            options['display'] = 'block';
+                            params['opacity'] = 1;
+                    }
+                    var distance, position;
+                    switch (direction) {
+                        case (VERTICAL_DIRECTIONS.DOWN):
+                        case (VERTICAL_DIRECTIONS.UP):
+                            distance = isBig ? unit.y : unit.y / 2;
+                            position = (direction == VERTICAL_DIRECTIONS.UP ? 1 : -1 ) * distance;
+                            el.css({top: transition == TRANSITIONS.OUT ? 0 : position});
+                            params['top'] = transition == TRANSITIONS.IN ? 0 : position;
+                            break;
+                        case (HORIZONTAL_DIRECTIONS.RIGHT):
+                        case (HORIZONTAL_DIRECTIONS.LEFT):
+                            distance = isBig ? unit.x : unit.x / 2;
+                            position = (direction == VERTICAL_DIRECTIONS.RIGHT ? 1 : -1 ) * distance;
+                            el.css({left: transition == TRANSITIONS.OUT ? 0 : position});
+                            params['left'] = transition == TRANSITIONS.IN ? 0 : position;
+                            break;
+                    }
+                    el.velocity(params, options);
+                    break;
+                case (ANIMATIONS.PULSE):
+                case (ANIMATIONS.BOUNCE):
+                case (ANIMATIONS.ZOOM):
+                    // TODO Think something using height/width top/left
+                    el.velocity(params, options);
+                    break;
+                case (ANIMATIONS.SHAKE):
+                case (ANIMATIONS.WOBBLE):
+                    // TODO Think something using left
+                    el.velocity(params, options);
+                    break;
+                case (ANIMATIONS.FLASH):
+                    params['opacity'] = 0;
+                    options['loop'] = 3;
+                    options['duration'] = options['duration'] / options['loop'];
+                    options['easing'] = 'easeInOutSine';
+                    el.velocity(params, options);
+                    break;
+                // IMPOSSIBLES
+                case (ANIMATIONS.WIGGLE):
+                case (ANIMATIONS.SWING):
+                case (ANIMATIONS.HINGE):
+                case (ANIMATIONS.TADA):
+                case (ANIMATIONS.ROTATE):
+                case (ANIMATIONS.FLIP):
+                case (ANIMATIONS.ROLL):
+                case (ANIMATIONS.LIGHT_SPEED):
+                default :
+            }
+
+        } else {
+            switch (transition) {
+                case (TRANSITIONS.OUT):
+                    el.hide(callback);
+                    break;
+                case (TRANSITIONS.IN):
+                default :
+                    el.show(callback);
+            }
+        }
+
+    }
+
     /**
      * Apply animation to the Element
      *
@@ -142,13 +219,18 @@ var Animations = (function () {
 
     function _applyAnimation(el, animation, transition, direction, isBig, callback) {
         if (animation) {
-            _clearAnimations(el);
-            var animationData = _buildAnimationData(animation, transition, direction, isBig, callback)
+            // IE6-IE8
+            if (!document.defaultView || !document.defaultView.getComputedStyle) {
+                _oldBrowsersFallback(el, animation, transition, direction, isBig, callback)
+            } else {
+                _clearAnimations(el);
+                var animationData = _buildAnimationData(animation, transition, direction, isBig, callback)
 
-            el.addClass('animated').addClass(animationData.animationClass);
-            el.on('animationend webkitAnimationEnd oanimationend MSAnimationEnd', function () {
-                if (animationData.callback) animationData.callback();
-            });
+                el.addClass('animated').addClass(animationData.animationClass);
+                el.on('animationend webkitAnimationEnd oanimationend MSAnimationEnd', function () {
+                    if (animationData.callback) animationData.callback();
+                });
+            }
         } else {
             throw new Error("'animation' param can't be null or undefined.");
         }
@@ -253,6 +335,7 @@ var Animations = (function () {
     }
 
     return {
+        duration: 500,
         TRANSITIONS: TRANSITIONS,
         AXES: AXES,
         VERTICAL_DIRECTIONS: VERTICAL_DIRECTIONS,
